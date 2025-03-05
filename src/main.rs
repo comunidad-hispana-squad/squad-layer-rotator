@@ -52,7 +52,11 @@ fn get_next_file(folder: &str) -> Option<String> {
     if files.is_empty() {
         None
     } else {
-        Some(files[Local::now().day() as usize % files.len()].clone())
+        let day_of_year = Local::now().ordinal() as usize;
+        let file_index = day_of_year % files.len();
+
+        println!("Files to choose from {} chosen index {}. Day {}", files.len(), file_index, day_of_year);
+        Some(files[file_index].clone())
     }
 }
 
