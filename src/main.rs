@@ -9,9 +9,7 @@ use std::io::prelude::*;
 use std::fs::File;
 use std::io::Read;
 use glob::glob;
-use std::sync::Arc;
 use tokio::time::{sleep, Duration};
-use std::time::Instant;
 
 #[tokio::main]
 async fn main() {
@@ -38,9 +36,12 @@ async fn main() {
             if let Some(file_path) = get_next_file(&local_folder) {
                 upload_file(&sftp, &file_path, &sftp_remote_path).await;
             }
-            sleep(Duration::from_secs(86400)).await; // Sleep for 24 hours
+            
+            println!("Sleeping for 24 hours");
+            sleep(Duration::from_secs(86400)).await;
         } else {
-            sleep(Duration::from_secs(3600)).await; // Sleep for 1 hour and check again
+            println!("Current hour: {} Target run hour {}. Sleeping for 30 min", now.hour(), run_hour);
+            sleep(Duration::from_secs(1800)).await;
         }
     }
 }
