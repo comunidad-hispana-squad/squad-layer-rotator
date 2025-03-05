@@ -10,6 +10,7 @@ use std::fs::File;
 use std::io::Read;
 use glob::glob;
 use tokio::time::{sleep, Duration};
+use tokio::signal;
 
 #[tokio::main]
 async fn main() {
@@ -22,6 +23,14 @@ async fn main() {
     let local_folder = env::var("LOCAL_FOLDER").unwrap_or_else(|_| "./layers".to_string());
     let run_hour: u32 = env::var("RUN_HOUR").unwrap_or_else(|_| "99".to_string()).parse().expect("RUN_HOUR must be a number");
 
+
+    // Handle docker signals correctly
+    tokio::spawn(async move {
+        signal::ctrl_c().await.unwrap();
+        println!("Received Ctrl-C, exiting");
+        std::process::exit(0);
+    });
+    
     let tcp = TcpStream::connect(sftp_host).unwrap();
     let mut sess = Session::new().unwrap();
     sess.set_tcp_stream(tcp);
