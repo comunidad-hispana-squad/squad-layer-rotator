@@ -4,6 +4,10 @@ Reads from `LOCAL_FOLDER` a different file per day and publishes it into `SFTP_R
 
 Uses SFPT as the transport protocol.
 
+## Releasing
+
+Create a `v*` tag (or github release) to publish a new image.
+
 ## Running
 
 ### Locally
