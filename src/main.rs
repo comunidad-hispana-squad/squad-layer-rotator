@@ -11,6 +11,7 @@ use std::io::Read;
 use glob::glob;
 use tokio::time::{sleep, Duration};
 use tokio::signal;
+use reqwest::Client;
 
 #[tokio::main]
 async fn main() {
@@ -22,6 +23,7 @@ async fn main() {
     let sftp_remote_path = env::var("SFTP_REMOTE_PATH").expect("SFTP_REMOTE_PATH not set");
     let local_folder = env::var("LOCAL_FOLDER").unwrap_or_else(|_| "./layers".to_string());
     let run_hour: u32 = env::var("RUN_HOUR").unwrap_or_else(|_| "99".to_string()).parse().expect("RUN_HOUR must be a number");
+    let webhook_url = env::var("DISCORD_WEBHOOK_URL").unwrap_or_default();
 
 
     // Handle docker signals correctly
@@ -43,7 +45,7 @@ async fn main() {
         let now = Local::now();
         if now.hour() == run_hour || run_hour == 99 {
             if let Some(file_path) = get_next_file(&local_folder) {
-                upload_file(&sftp, &file_path, &sftp_remote_path).await;
+                upload_file(&sftp, &file_path, &sftp_remote_path, &webhook_url).await;
             }
             
             println!("Sleeping for 24 hours");
@@ -69,7 +71,7 @@ fn get_next_file(folder: &str) -> Option<String> {
     }
 }
 
-async fn upload_file(sftp: &ssh2::Sftp, local_path: &str, remote_path: &str) {
+async fn upload_file(sftp: &ssh2::Sftp, local_path: &str, remote_path: &str, webhook_url: &str) {
     let mut file = File::open(local_path).unwrap();
     let mut contents = Vec::new();
     file.read_to_end(&mut contents).unwrap();
@@ -78,4 +80,50 @@ async fn upload_file(sftp: &ssh2::Sftp, local_path: &str, remote_path: &str) {
     let mut remote_file = sftp.create(Path::new(remote_path)).unwrap();
     remote_file.write_all(&contents).unwrap();
     println!("Uploaded {} to {}", local_path, remote_path);
+
+    if webhook_url.is_empty() {
+        println!("No webhook URL set, skipping discord message");
+        return;
+    }
+
+    if let Err(err) = send_discord_message(&webhook_url, local_path, &contents).await {
+        println!("Failed to send discord message: {}", err);
+    }
+}
+
+async fn send_discord_message(webhook_url: &str, file_name: &str, content: &[u8]) -> Result<(), reqwest::Error> {
+    let client = Client::new();
+
+    let content_str = String::from_utf8_lossy(content);
+    let lines: Vec<&str> = content_str.lines().filter(|line| !line.starts_with("//")).collect();
+
+    let mut fields = vec![serde_json::json!({
+        "name": "Mapas",
+        "value": "",
+        "inline": false
+    })];
+
+    fields.extend(lines.iter().map(|line| {
+        serde_json::json!({
+            "name": "",
+            "value": line,
+            "inline": false
+        })
+    }));
+
+    let embed = serde_json::json!({
+        "title": format!("Rotación: {}", file_name),
+        "color": 5986018,
+        "fields": fields
+    });
+
+    let payload = serde_json::json!({ "embeds": [embed] });
+
+    client.post(webhook_url)
+        .json(&payload)
+        .send()
+        .await?
+        .error_for_status()?;
+
+    Ok(())
 }

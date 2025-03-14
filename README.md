@@ -44,6 +44,7 @@ r-rotator:<version>
 - `SFTP_REMOTE_PATH`: Path of the destinations file.
 - `RUN_HOUR`: Hour to run the script. Goes from 0 to 23. Defaults to `99` which will cause to run on startup.
 - `LOCAL_FOLDER`: Folder to retrieve files from. Defaults to `./layers`.
+- `DISCORD_WEBHOOK_URL`: Optional. A webhook to send a message with the chosen file
 
 ## File selection
 
