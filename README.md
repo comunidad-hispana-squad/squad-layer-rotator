@@ -15,6 +15,7 @@ Create a `v*` tag (or github release) to publish a new image.
 The following packages are required to run the project
 - pkgconf
 - libssl-dev
+- ca-certificates
 
 Create an `.env` file
 ```
@@ -32,7 +33,7 @@ cargo run
 ### Docker
 
 ```
-docker run -it --rm -e "SFTP_HOST=..." ghcr.io/comunidad-hispana-squad/squad-laye
+docker run -it --rm --env-file ./.env ghcr.io/comunidad-hispana-squad/squad-laye
 r-rotator:<version>
 ```
 
